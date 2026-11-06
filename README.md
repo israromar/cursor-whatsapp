@@ -92,7 +92,7 @@ The hooks already tell a new Cursor chat about the bridge. When the agent needs 
 - User hooks run for local Cursor sessions. They do not run for Cursor cloud agents.
 - The phone cannot click an approval dialog on the Mac.
 - Ordinary file and shell errors are not forwarded. A permission prompt is.
-- The agent reply text is not copied into WhatsApp.
+- When you ask from WhatsApp, that answer is sent back. Other agent replies stay on the Mac.
 - `run` can continue an idle chat through the [Cursor agent CLI](https://cursor.com/docs/cli/overview) when that CLI is installed. It does not skip command approvals.
 - This uses WhatsApp's linked-device connection. It is not the WhatsApp Business Cloud API. WhatsApp can disconnect linked devices, and using an unofficial client can violate WhatsApp's terms.
 

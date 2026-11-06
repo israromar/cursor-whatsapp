@@ -112,8 +112,8 @@ export async function startBridge({ port, token, log = console.log }) {
     }
   }
 
-  async function deliver(text, { priority = false } = {}) {
-    const body = redact(text, 900);
+  async function deliver(text, { priority = false, max = 900 } = {}) {
+    const body = redact(text, max);
     if (!body) return false;
     if (!priority && !allowProgress()) return false;
     if (whatsapp.status() !== "linked" || !whatsapp.hasPeer()) {
@@ -246,8 +246,8 @@ export async function startBridge({ port, token, log = console.log }) {
     const pending = queueFollowup(book, action.text);
     persist();
     const idleNote = pending.idle
-      ? "\nThat chat looks idle. Send run to continue it in the terminal agent."
-      : "\nI'll pass this into the chat when the current turn ends.";
+      ? "\nThat chat is idle, so this waits until Cursor is running again."
+      : "\nThe answer will come back to this chat.";
     await deliver(`Saved for ${pending.workspace}.${idleNote}`, { priority: true });
   }
 
@@ -265,7 +265,11 @@ export async function startBridge({ port, token, log = console.log }) {
     onEvent: async (event) => {
       const result = noteEvent(book, event);
       persist();
-      if (result.text) await deliver(result.text).catch(() => {});
+      if (result.text) {
+        await deliver(result.text, { priority: Boolean(result.priority), max: result.priority ? 3200 : 900 }).catch(
+          () => {},
+        );
+      }
       return result.followup ? { followup_message: result.followup } : {};
     },
     onAsk: (body) => {

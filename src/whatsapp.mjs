@@ -258,7 +258,7 @@ export function createWhatsApp({ onText, onLink, onPair, route, log }) {
       const current = route?.() || {};
       const peer = current.ownerPn || current.ownerLid;
       if (!sock || link !== "linked" || !peer) return false;
-      const body = String(text).slice(0, 1000);
+      const body = String(text).slice(0, 3500);
       outboundText.set(body, Date.now() + 30_000);
       const sent = await sock.sendMessage(peer, { text: body });
       if (sent?.key?.id) {

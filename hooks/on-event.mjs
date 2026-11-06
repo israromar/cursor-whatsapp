@@ -20,7 +20,7 @@ function reduce(input) {
     tool_name: input.tool_name,
   };
   if (input.hook_event_name === "afterAgentResponse") {
-    event.excerpt = redact(input.text, 180);
+    event.excerpt = redact(input.text, 3200);
   }
   return event;
 }

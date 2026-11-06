@@ -19,6 +19,9 @@ export function createSessionBook(saved = {}) {
     ownerPn: saved.ownerPn || null,
     ownerLid: saved.ownerLid || null,
     pairCode: saved.pairCode || null,
+    awaitingReplyId: saved.awaitingReplyId || null,
+    lastFinishedKey: saved.lastFinishedKey || null,
+    lastFinishedAt: saved.lastFinishedAt || 0,
   };
 }
 
@@ -30,6 +33,9 @@ export function serializeBook(book) {
     ownerPn: book.ownerPn,
     ownerLid: book.ownerLid,
     pairCode: book.pairCode,
+    awaitingReplyId: book.awaitingReplyId,
+    lastFinishedKey: book.lastFinishedKey,
+    lastFinishedAt: book.lastFinishedAt,
     sessions: Object.fromEntries(book.byId),
   };
 }
@@ -64,15 +70,35 @@ export function noteEvent(book, event) {
     mode: event.composer_mode || book.byId.get(id)?.mode,
   });
 
-  if (book.paused && name !== "postToolUseFailure") {
-    return { text: null, followup: null, session };
+  let followup = null;
+  if (name === "stop" && book.pending && (!book.pending.conversationId || book.pending.conversationId === id)) {
+    followup = book.pending.text;
+    book.pending = null;
+    book.awaitingReplyId = id;
+  }
+
+  const answerDue = name === "afterAgentResponse" && book.awaitingReplyId === id;
+  if (book.paused && name !== "postToolUseFailure" && !answerDue) {
+    return { text: null, followup, session, priority: false };
   }
 
   let text = null;
+  let priority = false;
   if (name === "sessionStart") {
     text = `Cursor started\n${workspace} · ${event.composer_mode || "agent"}`;
-  } else if (name === "stop") {
-    text = `Cursor finished\n${workspace} · ${event.status || "completed"}\nReply here to send a follow-up.`;
+  } else if (name === "stop" && !followup) {
+    const now = Date.now();
+    const duplicate = book.lastFinishedKey === workspace && now - book.lastFinishedAt < 60_000;
+    if (!duplicate) {
+      text = `Cursor finished\n${workspace} · ${event.status || "completed"}\nReply here to send a follow-up.`;
+      book.lastFinishedKey = workspace;
+      book.lastFinishedAt = now;
+    }
+  } else if (name === "afterAgentResponse" && answerDue) {
+    const excerpt = redact(event.excerpt, 3200);
+    text = excerpt || null;
+    priority = Boolean(text);
+    book.awaitingReplyId = null;
   } else if (name === "sessionEnd") {
     const reason = event.reason || "ended";
     if (reason === "completed") text = null;
@@ -82,13 +108,7 @@ export function noteEvent(book, event) {
     text = `Cursor needs you\n${workspace}\n${tool} is waiting for approval on the Mac.`;
   }
 
-  let followup = null;
-  if (name === "stop" && book.pending && (!book.pending.conversationId || book.pending.conversationId === id)) {
-    followup = book.pending.text;
-    book.pending = null;
-  }
-
-  return { text, followup, session };
+  return { text, followup, session, priority };
 }
 
 export function acceptUserText(book, raw) {

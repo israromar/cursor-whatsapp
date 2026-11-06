@@ -117,6 +117,57 @@ test("only the paired personal chat is accepted", () => {
   );
 });
 
+test("a phone follow-up returns the next Cursor answer", () => {
+  const book = createSessionBook();
+  noteEvent(book, {
+    hook_event_name: "sessionStart",
+    conversation_id: "c1",
+    workspace_name: "demo",
+  });
+  queueFollowup(book, "Summarise what changed");
+  const injected = noteEvent(book, {
+    hook_event_name: "stop",
+    conversation_id: "c1",
+    workspace_name: "demo",
+    status: "completed",
+  });
+  const answer = noteEvent(book, {
+    hook_event_name: "afterAgentResponse",
+    conversation_id: "c1",
+    workspace_name: "demo",
+    excerpt: "Idempotency tests are concurrent.",
+  });
+  const again = noteEvent(book, {
+    hook_event_name: "afterAgentResponse",
+    conversation_id: "c1",
+    workspace_name: "demo",
+    excerpt: "This later reply stays on the Mac.",
+  });
+  assert.equal(injected.followup, "Summarise what changed");
+  assert.equal(injected.text, null);
+  assert.equal(answer.priority, true);
+  assert.match(answer.text, /Idempotency tests are concurrent/);
+  assert.equal(again.text, null);
+});
+
+test("repeated finish notices collapse", () => {
+  const book = createSessionBook();
+  const first = noteEvent(book, {
+    hook_event_name: "stop",
+    conversation_id: "c1",
+    workspace_name: "demo",
+    status: "completed",
+  });
+  const second = noteEvent(book, {
+    hook_event_name: "stop",
+    conversation_id: "c2",
+    workspace_name: "demo",
+    status: "completed",
+  });
+  assert.match(first.text, /finished/);
+  assert.equal(second.text, null);
+});
+
 test("stats is the status command", () => {
   const book = createSessionBook();
   assert.deepEqual(acceptUserText(book, "stats"), {
