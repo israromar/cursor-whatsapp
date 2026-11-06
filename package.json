@@ -1,0 +1,26 @@
+{
+  "name": "cursor-whatsapp",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Follow local Cursor agents on WhatsApp and reply from your phone.",
+  "license": "MIT",
+  "engines": {
+    "node": ">=20"
+  },
+  "bin": {
+    "cursor-whatsapp": "./src/cli.mjs"
+  },
+  "scripts": {
+    "start": "node src/cli.mjs start",
+    "test": "node --test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/israromar/cursor-whatsapp.git"
+  },
+  "dependencies": {
+    "@whiskeysockets/baileys": "6.7.24",
+    "pino": "^9.6.0",
+    "qrcode": "^1.5.4"
+  }
+}
